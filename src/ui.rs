@@ -36,15 +36,26 @@ pub fn render(f: &mut Frame, app: &AppState) {
                 .block(Block::default().borders(Borders::ALL).title(" Main Menu "));
             f.render_widget(content, chunks[1]);
         }
-        UiMode::Writing => {
+        UiMode::WritingEnterTime => {
             // Show what the user is typing from app.input_buffer
             let input_text = format!(
                 "Enter the date (YYYY-MM-DD HH:MM:SS):\n\n> {}",
                 app.input_buffer
             );
             let content = Paragraph::new(input_text)
-                .block(Block::default().borders(Borders::ALL).title(" New Period "))
-                .style(Style::default().fg(Color::Yellow));
+                .block(Block::default().borders(Borders::ALL).title(" Enter Time "))
+                .style(Style::default().fg(Color::Green));
+            f.render_widget(content, chunks[1]);
+        }
+        UiMode::WritingExitTime => {
+            // Show what the user is typing from app.input_buffer
+            let input_text = format!(
+                "Enter the exit date (YYYY-MM-DD HH:MM:SS):\n\n> {}",
+                app.input_buffer
+            );
+            let content = Paragraph::new(input_text)
+                .block(Block::default().borders(Borders::ALL).title(" Exit Time "))
+                .style(Style::default().fg(Color::Red));
             f.render_widget(content, chunks[1]);
         }
     }
@@ -52,7 +63,8 @@ pub fn render(f: &mut Frame, app: &AppState) {
     // Footer section
     let msg_pie = match app.ui_mode {
         UiMode::Menu => " 'q' Exit | 'e' Write period ",
-        UiMode::Writing => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
+        UiMode::WritingEnterTime => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
+        UiMode::WritingExitTime => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
     };
     let pie = Paragraph::new(msg_pie)
         .block(Block::default().borders(Borders::ALL))

@@ -21,7 +21,8 @@ pub type AppResult<T> = std::result::Result<T, AppError>;
 #[derive(PartialEq)]
 pub enum UiMode {
     Menu,
-    Writing,
+    WritingEnterTime,
+    WritingExitTime,
 }
 
 pub struct Config {
@@ -33,6 +34,7 @@ pub struct AppState {
     pub db: Connection,
     pub ui_mode: UiMode,
     pub input_buffer: String,
+    pub temporal_enter_time_input: Option<String>,
     pub should_quit: bool,
 }
 impl AppState {
@@ -44,6 +46,7 @@ impl AppState {
             db: connection,
             ui_mode: UiMode::Menu,
             input_buffer: String::new(),
+            temporal_enter_time_input: None,
             should_quit: false,
         }
     }
