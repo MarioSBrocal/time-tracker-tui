@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use rusqlite::Connection;
 use thiserror::Error;
 
@@ -14,6 +15,22 @@ pub enum AppError {
 
     #[error("Unexpected error: {0}")]
     Unexpected(String),
+}
+impl AppError {
+    pub fn user_message(&self) -> String {
+        match self {
+            AppError::Database(_) => {
+                "Database error occurred. Please check the database.".to_string()
+            }
+            AppError::IO(_) => {
+                "Input/Output error occurred. Please check the terminal.".to_string()
+            }
+            AppError::DateParse(_) => {
+                "Invalid date-time format. Please use YYYY-MM-DD HH:MM:SS.".to_string()
+            }
+            AppError::Unexpected(msg) => format!("Unexpected error: {}", msg),
+        }
+    }
 }
 
 pub type AppResult<T> = std::result::Result<T, AppError>;
@@ -34,8 +51,9 @@ pub struct AppState {
     pub db: Connection,
     pub ui_mode: UiMode,
     pub input_buffer: String,
-    pub temporal_enter_time_input: Option<String>,
+    pub temporal_enter_time: Option<NaiveDateTime>,
     pub should_quit: bool,
+    pub error_message: Option<String>,
 }
 impl AppState {
     pub fn new(connection: Connection) -> Self {
@@ -46,8 +64,9 @@ impl AppState {
             db: connection,
             ui_mode: UiMode::Menu,
             input_buffer: String::new(),
-            temporal_enter_time_input: None,
+            temporal_enter_time: None,
             should_quit: false,
+            error_message: None,
         }
     }
 

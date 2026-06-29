@@ -1,7 +1,7 @@
 use std::io::Stdout;
 
 use crate::{
-    app::{AppResult, AppState, UiMode},
+    app::{AppError, AppResult, AppState, UiMode},
     db::register_period,
     ui,
 };
@@ -29,6 +29,14 @@ pub fn run_app(
                 continue;
             }
 
+            if app.error_message.is_some() {
+                match key.code {
+                    KeyCode::Enter | KeyCode::Esc => app.error_message = None,
+                    _ => {}
+                }
+                continue;
+            }
+
             // Handle key events based on the current UI mode
             match app.ui_mode {
                 UiMode::Menu => match key.code {
@@ -50,9 +58,17 @@ pub fn run_app(
                     }
                     KeyCode::Enter => {
                         // Save the entered time in a temporary variable and switch to WritingExitTime mode
-                        app.temporal_enter_time_input = Some(app.input_buffer.clone());
-                        app.input_buffer.clear();
-                        app.ui_mode = UiMode::WritingExitTime;
+                        match NaiveDateTime::parse_from_str(&app.input_buffer, "%Y-%m-%d %H:%M:%S")
+                        {
+                            Ok(enter_time) => {
+                                app.temporal_enter_time = Some(enter_time);
+                                app.input_buffer.clear();
+                                app.ui_mode = UiMode::WritingExitTime;
+                            }
+                            Err(e) => {
+                                app.error_message = Some(AppError::DateParse(e).user_message());
+                            }
+                        }
                     }
                     KeyCode::Char(c) => {
                         // Append typed characters to the input buffer
@@ -71,29 +87,30 @@ pub fn run_app(
                         app.input_buffer.clear();
                     }
                     KeyCode::Enter => {
-                        if let Some(enter_time_str) = &app.temporal_enter_time_input {
-                            let exit_time_str = &app.input_buffer;
-
-                            // Try to parse the entered times into NaiveDateTime
-                            let parse_enter_time =
-                                NaiveDateTime::parse_from_str(enter_time_str, "%Y-%m-%d %H:%M:%S");
-                            let parse_exit_time =
-                                NaiveDateTime::parse_from_str(exit_time_str, "%Y-%m-%d %H:%M:%S");
-
-                            if let (Ok(enter_time), Ok(exit_time)) =
-                                (parse_enter_time, parse_exit_time)
-                            {
-                                // Register the period in the database
-                                let _ = register_period(&app.db, enter_time, exit_time);
-                            } else {
-                                // TODO: Handle parsing errors (e.g., show an error message to the user)
+                        if let Some(enter_time_str) = &app.temporal_enter_time {
+                            match NaiveDateTime::parse_from_str(
+                                &app.input_buffer,
+                                "%Y-%m-%d %H:%M:%S",
+                            ) {
+                                Ok(exit_time) => {
+                                    // Save the period to the database
+                                    match register_period(&app.db, *enter_time_str, exit_time) {
+                                        Ok(_) => {
+                                            // Clear the input buffer and return to the main menu
+                                            app.input_buffer.clear();
+                                            app.temporal_enter_time = None;
+                                            app.ui_mode = UiMode::Menu;
+                                        }
+                                        Err(e) => {
+                                            app.error_message = Some(e.user_message());
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    app.error_message = Some(AppError::DateParse(e).user_message());
+                                }
                             }
                         }
-
-                        // Clear the input buffer and return to the main menu
-                        app.input_buffer.clear();
-                        app.temporal_enter_time_input = None;
-                        app.ui_mode = UiMode::Menu;
                     }
                     KeyCode::Char(c) => {
                         // Append typed characters to the input buffer

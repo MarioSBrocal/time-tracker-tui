@@ -1,6 +1,6 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, Paragraph},
 };
@@ -43,8 +43,13 @@ pub fn render(f: &mut Frame, app: &AppState) {
                 app.input_buffer
             );
             let content = Paragraph::new(input_text)
-                .block(Block::default().borders(Borders::ALL).title(" Enter Time "))
-                .style(Style::default().fg(Color::Green));
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(" Enter Time ")
+                        .border_style(Style::default().fg(Color::Green)),
+                )
+                .style(Style::default().fg(Color::White));
             f.render_widget(content, chunks[1]);
         }
         UiMode::WritingExitTime => {
@@ -54,8 +59,13 @@ pub fn render(f: &mut Frame, app: &AppState) {
                 app.input_buffer
             );
             let content = Paragraph::new(input_text)
-                .block(Block::default().borders(Borders::ALL).title(" Exit Time "))
-                .style(Style::default().fg(Color::Red));
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(" Exit Time ")
+                        .border_style(Style::default().fg(Color::LightRed)),
+                )
+                .style(Style::default().fg(Color::White));
             f.render_widget(content, chunks[1]);
         }
     }
@@ -70,4 +80,38 @@ pub fn render(f: &mut Frame, app: &AppState) {
         .block(Block::default().borders(Borders::ALL))
         .style(Style::default().fg(Color::DarkGray));
     f.render_widget(pie, chunks[2]);
+
+    if let Some(error) = &app.error_message {
+        let popup_area = centered_area(50, 20, f.area());
+
+        let popup = Paragraph::new(error.as_str())
+            .block(
+                Block::default()
+                    .title(" ERROR ")
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::Red)),
+            )
+            .style(Style::default().fg(Color::White));
+        f.render_widget(popup, popup_area);
+    }
+}
+
+fn centered_area(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1])[1]
 }
