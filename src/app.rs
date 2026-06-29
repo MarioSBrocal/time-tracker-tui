@@ -1,10 +1,27 @@
 use rusqlite::Connection;
+use thiserror::Error;
 
-pub type AppResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+#[derive(Error, Debug)]
+pub enum AppError {
+    #[error("Database error: {0}")]
+    Database(#[from] rusqlite::Error),
+
+    #[error("Input/Output error in terminal: {0}")]
+    IO(#[from] std::io::Error),
+
+    #[error("Date parsing error: {0}")]
+    DateParse(#[from] chrono::ParseError),
+
+    #[error("Unexpected error: {0}")]
+    Unexpected(String),
+}
+
+pub type AppResult<T> = std::result::Result<T, AppError>;
 
 #[derive(PartialEq)]
 pub enum UiMode {
     Menu,
+    Writing,
 }
 
 pub struct Config {

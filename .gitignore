@@ -1,1 +1,4 @@
 /target
+
+# Ignore SQLite database files
+*.db

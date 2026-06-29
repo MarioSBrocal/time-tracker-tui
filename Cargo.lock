@@ -1557,6 +1557,7 @@ dependencies = [
  "crossterm",
  "ratatui",
  "rusqlite",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
