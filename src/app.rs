@@ -1,4 +1,5 @@
 use chrono::{Datelike, Local, NaiveDate, NaiveDateTime};
+use ratatui::widgets::TableState;
 use rusqlite::Connection;
 use thiserror::Error;
 
@@ -71,6 +72,7 @@ pub enum UiMode {
     CalculatingStart,
     CalculatingEnd,
     CalculatingShowResult,
+    VisualizingTable,
 }
 
 #[derive(Default, Clone)]
@@ -256,15 +258,30 @@ impl DateAssistant {
     }
 }
 
+pub struct Period {
+    pub id: i32,
+    pub enter_time: NaiveDateTime,
+    pub exit_time: NaiveDateTime,
+}
+
 pub struct AppState {
     pub db: Connection,
     pub ui_mode: UiMode,
     pub input_buffer: String,
+
     pub date_time_assistant: DateTimeAssistant,
     pub date_assistant: DateAssistant,
+
     pub temporal_enter_time: Option<NaiveDateTime>,
+
     pub temporal_start_date: Option<NaiveDateTime>,
     pub calculation_result: Option<f64>,
+
+    pub current_periods: Vec<Period>,
+    pub table_state: TableState,
+    pub current_year: i32,
+    pub current_month: u32,
+
     pub should_quit: bool,
     pub error_message: Option<String>,
 }
@@ -279,6 +296,10 @@ impl AppState {
             temporal_enter_time: None,
             temporal_start_date: None,
             calculation_result: None,
+            current_periods: Vec::new(),
+            table_state: TableState::default(),
+            current_year: Local::now().year(),
+            current_month: Local::now().month(),
             should_quit: false,
             error_message: None,
         }
@@ -287,5 +308,25 @@ impl AppState {
     /// Quit the application by setting the `should_quit` flag to true.
     pub fn quit(&mut self) {
         self.should_quit = true;
+    }
+
+    pub fn table_next(&mut self) {
+        if self.current_month == 12 {
+            self.current_month = 1;
+            self.current_year += 1;
+        } else {
+            self.current_month += 1;
+        }
+        self.table_state.select(None);
+    }
+
+    pub fn table_previous(&mut self) {
+        if self.current_month == 1 {
+            self.current_month = 12;
+            self.current_year -= 1;
+        } else {
+            self.current_month -= 1;
+        }
+        self.table_state.select(None);
     }
 }

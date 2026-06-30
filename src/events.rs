@@ -2,7 +2,7 @@ use std::io::Stdout;
 
 use crate::{
     app::{AppError, AppResult, AppState, UiMode},
-    db::{self, register_period},
+    db::{self, fetch_month_periods, register_period},
     ui,
 };
 use chrono::{NaiveDate, NaiveDateTime};
@@ -52,6 +52,15 @@ pub fn run_app(
                         // Change the UI mode to CalculatingStart and clear the input buffer for calculation
                         app.ui_mode = UiMode::CalculatingStart;
                         app.input_buffer.clear();
+                    }
+                    KeyCode::Char('v') => {
+                        // Change the UI mode to VisualizingTable and fetch the periods for the current month
+                        app.ui_mode = UiMode::VisualizingTable;
+                        if let Ok(periods) =
+                            fetch_month_periods(&app.db, app.current_year, app.current_month)
+                        {
+                            app.current_periods = periods;
+                        }
                     }
                     _ => {}
                 },
@@ -517,6 +526,59 @@ pub fn run_app(
                         app.ui_mode = UiMode::Menu;
                         app.calculation_result = None;
                         app.temporal_start_date = None;
+                    }
+                    _ => {}
+                },
+                UiMode::VisualizingTable => match key.code {
+                    KeyCode::Esc => {
+                        // Return to the main menu from the table visualization mode
+                        app.ui_mode = UiMode::Menu;
+                    }
+                    // Months navigation (Left / Right)
+                    KeyCode::Left => {
+                        app.table_previous();
+                        // Reload data from SQLite for the previous month
+                        if let Ok(periods) =
+                            fetch_month_periods(&app.db, app.current_year, app.current_month)
+                        {
+                            app.current_periods = periods;
+                        }
+                    }
+                    KeyCode::Right => {
+                        app.table_next();
+                        // Reload data from SQLite for the next month
+                        if let Ok(tramos) =
+                            fetch_month_periods(&app.db, app.current_year, app.current_month)
+                        {
+                            app.current_periods = tramos;
+                        }
+                    }
+                    // Rows navigation (Up / Down)
+                    KeyCode::Down => {
+                        let i = match app.table_state.selected() {
+                            Some(i) => {
+                                if i >= app.current_periods.len().saturating_sub(1) {
+                                    i
+                                } else {
+                                    i + 1
+                                }
+                            }
+                            None => 0,
+                        };
+                        app.table_state.select(Some(i));
+                    }
+                    KeyCode::Up => {
+                        let i = match app.table_state.selected() {
+                            Some(i) => {
+                                if i == 0 {
+                                    0
+                                } else {
+                                    i - 1
+                                }
+                            }
+                            None => 0,
+                        };
+                        app.table_state.select(Some(i));
                     }
                     _ => {}
                 },

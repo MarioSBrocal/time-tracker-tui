@@ -1,14 +1,14 @@
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     text::Line,
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table},
 };
 
 use crate::app::{AppState, UiMode};
 
-pub fn render(f: &mut Frame, app: &AppState) {
+pub fn render(f: &mut Frame, app: &mut AppState) {
     // Divide the terminal into three sections: header, center, and footer.
     let chunks = Layout::default()
         .direction(ratatui::layout::Direction::Vertical)
@@ -32,7 +32,7 @@ pub fn render(f: &mut Frame, app: &AppState) {
     // Center section
     match app.ui_mode {
         UiMode::Menu => {
-            let menu_text = "Welcome to the registration.\n\nPress 'e' to enter a new manual period.\nPress 'c' to calculate hours between two dates.\nPress 'q' to exit the application.";
+            let menu_text = "Welcome to the registration.\n\nPress 'e' to enter a new manual period.\nPress 'c' to calculate hours between two dates.\nPress 'v' to view registered periods.\nPress 'q' to exit the application.";
             let content = Paragraph::new(menu_text)
                 .block(Block::default().borders(Borders::ALL).title(" Main Menu "));
             f.render_widget(content, chunks[1]);
@@ -156,6 +156,76 @@ pub fn render(f: &mut Frame, app: &AppState) {
                 .style(Style::default().fg(Color::White));
             f.render_widget(content, chunks[1]);
         }
+        UiMode::VisualizingTable => {
+            // Translate month number to month name for the table title
+            let month_names = [
+                "",
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
+            ];
+            let table_title = format!(
+                " {} {} ",
+                month_names[app.current_month as usize], app.current_year
+            );
+
+            // Header for the table
+            let header_cells = ["Enter Time", "Exit Time", "Total Hours"].iter().map(|h| {
+                Cell::from(*h).style(
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                )
+            });
+            let header = Row::new(header_cells)
+                .style(Style::default().bg(Color::DarkGray))
+                .height(1)
+                .bottom_margin(1);
+
+            // Create rows for the table based on the current periods
+            let rows = app.current_periods.iter().map(|period| {
+                let enter_time = period.enter_time.format("%Y-%m-%d %H:%M").to_string();
+                let exit_time = period.exit_time.format("%Y-%m-%d %H:%M").to_string();
+
+                // Calculate the total hours for the period
+                let duration = period.exit_time.signed_duration_since(period.enter_time);
+                let total_hours = duration.num_minutes() as f64 / 60.0;
+                let total_str = format!("{:.2}h", total_hours);
+
+                Row::new(vec![
+                    Cell::from(enter_time),
+                    Cell::from(exit_time),
+                    Cell::from(total_str).style(Style::default().fg(Color::Yellow)),
+                ])
+                .height(1)
+            });
+
+            // Build the table with the header and rows, and set the column widths
+            let table = Table::new(
+                rows,
+                [
+                    Constraint::Percentage(40), // Enter Time column
+                    Constraint::Percentage(40), // Exit Time column
+                    Constraint::Percentage(20), // Total Hours column
+                ],
+            )
+            .header(header)
+            .block(Block::default().borders(Borders::ALL).title(table_title))
+            .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED)) // Highlight the selected row
+            .highlight_symbol(">> "); // Arrow indicator for the selected row
+
+            // Render the table in the center section of the UI
+            f.render_stateful_widget(table, chunks[1], &mut app.table_state);
+        }
     }
 
     // Footer section
@@ -166,6 +236,9 @@ pub fn render(f: &mut Frame, app: &AppState) {
         UiMode::CalculatingStart => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
         UiMode::CalculatingEnd => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
         UiMode::CalculatingShowResult => " 'Esc' Return to Menu | 'Enter' Return to Menu ",
+        UiMode::VisualizingTable => {
+            " 'Esc' Return to Menu | 'Left/Right' Change month | 'Up/Down' Navigate rows "
+        }
     };
     let pie = Paragraph::new(msg_pie)
         .block(Block::default().borders(Borders::ALL))
