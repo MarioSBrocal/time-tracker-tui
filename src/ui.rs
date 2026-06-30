@@ -39,7 +39,7 @@ pub fn render(f: &mut Frame, app: &AppState) {
         UiMode::WritingEnterTime => {
             // Show what the user is typing from app.input_buffer
             let input_text = format!(
-                "Enter the date (YYYY-MM-DD HH:MM:SS):\n\n> {}",
+                "Enter the date (YYYY-MM-DD HH:MM):\n\n> {}",
                 app.input_buffer
             );
             let content = Paragraph::new(input_text)
@@ -55,7 +55,7 @@ pub fn render(f: &mut Frame, app: &AppState) {
         UiMode::WritingExitTime => {
             // Show what the user is typing from app.input_buffer
             let input_text = format!(
-                "Enter the exit date (YYYY-MM-DD HH:MM:SS):\n\n> {}",
+                "Enter the exit date (YYYY-MM-DD HH:MM):\n\n> {}",
                 app.input_buffer
             );
             let content = Paragraph::new(input_text)

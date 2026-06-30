@@ -63,15 +63,15 @@ pub fn run_app(
                     }
                     KeyCode::Enter => {
                         // Save the entered time in a temporary variable and switch to WritingExitTime mode
-                        match NaiveDateTime::parse_from_str(&app.input_buffer, "%Y-%m-%d %H:%M:%S")
-                        {
+                        match NaiveDateTime::parse_from_str(&app.input_buffer, "%Y-%m-%d %H:%M") {
                             Ok(enter_time) => {
                                 app.temporal_enter_time = Some(enter_time);
                                 app.input_buffer.clear();
                                 app.ui_mode = UiMode::WritingExitTime;
                             }
                             Err(e) => {
-                                app.error_message = Some(AppError::DateParse(e).user_message());
+                                app.error_message =
+                                    Some(AppError::DateTimeParse(e.to_string()).user_message());
                             }
                         }
                     }
@@ -93,10 +93,8 @@ pub fn run_app(
                     }
                     KeyCode::Enter => {
                         if let Some(enter_time_str) = &app.temporal_enter_time {
-                            match NaiveDateTime::parse_from_str(
-                                &app.input_buffer,
-                                "%Y-%m-%d %H:%M:%S",
-                            ) {
+                            match NaiveDateTime::parse_from_str(&app.input_buffer, "%Y-%m-%d %H:%M")
+                            {
                                 Ok(exit_time) => {
                                     // Save the period to the database
                                     match register_period(&app.db, *enter_time_str, exit_time) {
@@ -112,7 +110,8 @@ pub fn run_app(
                                     }
                                 }
                                 Err(e) => {
-                                    app.error_message = Some(AppError::DateParse(e).user_message());
+                                    app.error_message =
+                                        Some(AppError::DateTimeParse(e.to_string()).user_message());
                                 }
                             }
                         }
@@ -142,7 +141,8 @@ pub fn run_app(
                                 app.ui_mode = UiMode::CalculatingEnd;
                             }
                             Err(e) => {
-                                app.error_message = Some(AppError::DateParse(e).user_message());
+                                app.error_message =
+                                    Some(AppError::DateParse(e.to_string()).user_message());
                             }
                         }
                     }
@@ -182,7 +182,8 @@ pub fn run_app(
                                     }
                                 }
                                 Err(e) => {
-                                    app.error_message = Some(AppError::DateParse(e).user_message());
+                                    app.error_message =
+                                        Some(AppError::DateParse(e.to_string()).user_message());
                                 }
                             }
                         } else {

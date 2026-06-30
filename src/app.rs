@@ -10,9 +10,11 @@ pub enum AppError {
     #[error("Input/Output error in terminal: {0}")]
     IO(#[from] std::io::Error),
 
-    // TODO: Divide in different error types to cover different formats.
     #[error("Date parsing error: {0}")]
-    DateParse(#[from] chrono::ParseError),
+    DateParse(String),
+
+    #[error("DateTime parsing error: {0}")]
+    DateTimeParse(String),
 
     #[error("Invalid state: {0}")]
     InvalidState(String),
@@ -29,8 +31,9 @@ impl AppError {
             AppError::IO(_) => {
                 "Input/Output error occurred. Please check the terminal.".to_string()
             }
-            AppError::DateParse(_) => {
-                "Invalid date-time format. Please use YYYY-MM-DD HH:MM:SS.".to_string()
+            AppError::DateParse(_) => "Invalid date format. Please use YYYY-MM-DD.".to_string(),
+            AppError::DateTimeParse(_) => {
+                "Invalid date-time format. Please use YYYY-MM-DD HH:MM.".to_string()
             }
             AppError::InvalidState(msg) => format!("Invalid state: {}", msg),
             AppError::Unexpected(msg) => format!("Unexpected error: {}", msg),
