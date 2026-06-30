@@ -73,10 +73,6 @@ pub enum UiMode {
     CalculatingShowResult,
 }
 
-pub struct Config {
-    pub db_path: String,
-}
-
 #[derive(Default, Clone)]
 pub struct DateTimeAssistant {
     pub year: String,
@@ -261,7 +257,6 @@ impl DateAssistant {
 }
 
 pub struct AppState {
-    pub config: Config,
     pub db: Connection,
     pub ui_mode: UiMode,
     pub input_buffer: String,
@@ -276,9 +271,6 @@ pub struct AppState {
 impl AppState {
     pub fn new(connection: Connection) -> Self {
         Self {
-            config: Config {
-                db_path: String::from("time_tracker.db"),
-            },
             db: connection,
             ui_mode: UiMode::Menu,
             input_buffer: String::new(),
