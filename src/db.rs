@@ -54,9 +54,9 @@ pub fn calculate_hours_range(
         let (enter_time_str, exit_time_str) = period?;
 
         // Convert the enter_time and exit_time strings back to NaiveDateTime
-        let enter_time = NaiveDateTime::parse_from_str(&enter_time_str, "%Y-%m-%d %H:%M")
+        let enter_time = NaiveDateTime::parse_from_str(&enter_time_str, "%Y-%m-%d %H:%M:%S")
             .map_err(|e| AppError::DateTimeParse(e.to_string()))?;
-        let exit_time = NaiveDateTime::parse_from_str(&exit_time_str, "%Y-%m-%d %H:%M")
+        let exit_time = NaiveDateTime::parse_from_str(&exit_time_str, "%Y-%m-%d %H:%M:%S")
             .map_err(|e| AppError::DateTimeParse(e.to_string()))?;
 
         // Calculate the difference in seconds between enter_time and exit_time

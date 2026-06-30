@@ -59,14 +59,96 @@ pub fn run_app(
                     KeyCode::Esc => {
                         // Cancel the writing mode and return to the main menu
                         app.ui_mode = UiMode::Menu;
+                        app.date_time_assistant.reset();
                         app.input_buffer.clear();
                     }
                     KeyCode::Enter => {
+                        match app.date_time_assistant.step {
+                            0 => {
+                                // Validate the year input
+                                match app.date_time_assistant.validate_year(&app.input_buffer) {
+                                    Ok(_) => {
+                                        app.date_time_assistant.year = app.input_buffer.clone();
+                                        app.input_buffer.clear();
+                                        app.date_time_assistant.step += 1;
+                                        continue;
+                                    }
+                                    Err(e) => {
+                                        app.error_message = Some(e.user_message());
+                                        continue;
+                                    }
+                                }
+                            }
+                            1 => {
+                                // Validate the month input
+                                match app.date_time_assistant.validate_month(&app.input_buffer) {
+                                    Ok(_) => {
+                                        app.date_time_assistant.month = app.input_buffer.clone();
+                                        app.input_buffer.clear();
+                                        app.date_time_assistant.step += 1;
+                                        continue;
+                                    }
+                                    Err(e) => {
+                                        app.error_message = Some(e.user_message());
+                                        continue;
+                                    }
+                                }
+                            }
+                            2 => {
+                                // Validate the day input
+                                match app.date_time_assistant.validate_day(&app.input_buffer) {
+                                    Ok(_) => {
+                                        app.date_time_assistant.day = app.input_buffer.clone();
+                                        app.input_buffer.clear();
+                                        app.date_time_assistant.step += 1;
+                                        continue;
+                                    }
+                                    Err(e) => {
+                                        app.error_message = Some(e.user_message());
+                                        continue;
+                                    }
+                                }
+                            }
+                            3 => {
+                                // Validate the hour input
+                                match app.date_time_assistant.validate_hour(&app.input_buffer) {
+                                    Ok(_) => {
+                                        app.date_time_assistant.hour = app.input_buffer.clone();
+                                        app.input_buffer.clear();
+                                        app.date_time_assistant.step += 1;
+                                        continue;
+                                    }
+                                    Err(e) => {
+                                        app.error_message = Some(e.user_message());
+                                        continue;
+                                    }
+                                }
+                            }
+                            4 => {
+                                // Validate the minute input
+                                match app.date_time_assistant.validate_minute(&app.input_buffer) {
+                                    Ok(_) => {
+                                        app.date_time_assistant.minute = app.input_buffer.clone();
+                                        app.input_buffer.clear();
+                                        app.date_time_assistant.step += 1;
+                                    }
+                                    Err(e) => {
+                                        app.error_message = Some(e.user_message());
+                                        continue;
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+
                         // Save the entered time in a temporary variable and switch to WritingExitTime mode
-                        match NaiveDateTime::parse_from_str(&app.input_buffer, "%Y-%m-%d %H:%M") {
+                        match NaiveDateTime::parse_from_str(
+                            &app.date_time_assistant.iso_format(),
+                            "%Y-%m-%d %H:%M",
+                        ) {
                             Ok(enter_time) => {
                                 app.temporal_enter_time = Some(enter_time);
-                                app.input_buffer.clear();
+                                app.date_time_assistant.reset();
                                 app.ui_mode = UiMode::WritingExitTime;
                             }
                             Err(e) => {
@@ -77,11 +159,22 @@ pub fn run_app(
                     }
                     KeyCode::Char(c) => {
                         // Append typed characters to the input buffer
-                        app.input_buffer.push(c);
+                        let max_len = if app.date_time_assistant.step == 0 {
+                            4
+                        } else {
+                            2
+                        };
+                        if app.input_buffer.len() < max_len {
+                            app.input_buffer.push(c);
+                        }
                     }
                     KeyCode::Backspace => {
                         // Remove the last character from the input buffer if it exists
-                        app.input_buffer.pop();
+                        if app.input_buffer.is_empty() && app.date_time_assistant.step > 0 {
+                            app.date_time_assistant.step -= 1;
+                        } else {
+                            app.input_buffer.pop();
+                        }
                     }
                     _ => {}
                 },
@@ -89,18 +182,104 @@ pub fn run_app(
                     KeyCode::Esc => {
                         // Cancel the writing mode and return to the main menu
                         app.ui_mode = UiMode::Menu;
+                        app.date_time_assistant.reset();
                         app.input_buffer.clear();
                     }
                     KeyCode::Enter => {
                         if let Some(enter_time_str) = &app.temporal_enter_time {
-                            match NaiveDateTime::parse_from_str(&app.input_buffer, "%Y-%m-%d %H:%M")
-                            {
+                            match app.date_time_assistant.step {
+                                0 => {
+                                    // Validate the year input
+                                    match app.date_time_assistant.validate_year(&app.input_buffer) {
+                                        Ok(_) => {
+                                            app.date_time_assistant.year = app.input_buffer.clone();
+                                            app.input_buffer.clear();
+                                            app.date_time_assistant.step += 1;
+                                            continue;
+                                        }
+                                        Err(e) => {
+                                            app.error_message = Some(e.user_message());
+                                            continue;
+                                        }
+                                    }
+                                }
+                                1 => {
+                                    // Validate the month input
+                                    match app.date_time_assistant.validate_month(&app.input_buffer)
+                                    {
+                                        Ok(_) => {
+                                            app.date_time_assistant.month =
+                                                app.input_buffer.clone();
+                                            app.input_buffer.clear();
+                                            app.date_time_assistant.step += 1;
+                                            continue;
+                                        }
+                                        Err(e) => {
+                                            app.error_message = Some(e.user_message());
+                                            continue;
+                                        }
+                                    }
+                                }
+                                2 => {
+                                    // Validate the day input
+                                    match app.date_time_assistant.validate_day(&app.input_buffer) {
+                                        Ok(_) => {
+                                            app.date_time_assistant.day = app.input_buffer.clone();
+                                            app.input_buffer.clear();
+                                            app.date_time_assistant.step += 1;
+                                            continue;
+                                        }
+                                        Err(e) => {
+                                            app.error_message = Some(e.user_message());
+                                            continue;
+                                        }
+                                    }
+                                }
+                                3 => {
+                                    // Validate the hour input
+                                    match app.date_time_assistant.validate_hour(&app.input_buffer) {
+                                        Ok(_) => {
+                                            app.date_time_assistant.hour = app.input_buffer.clone();
+                                            app.input_buffer.clear();
+                                            app.date_time_assistant.step += 1;
+                                            continue;
+                                        }
+                                        Err(e) => {
+                                            app.error_message = Some(e.user_message());
+                                            continue;
+                                        }
+                                    }
+                                }
+                                4 => {
+                                    // Validate the minute input
+                                    match app.date_time_assistant.validate_minute(&app.input_buffer)
+                                    {
+                                        Ok(_) => {
+                                            app.date_time_assistant.minute =
+                                                app.input_buffer.clone();
+                                            app.input_buffer.clear();
+                                            app.date_time_assistant.step += 1;
+                                        }
+                                        Err(e) => {
+                                            app.error_message = Some(e.user_message());
+                                            continue;
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+
+                            // Save the entered time in a temporary variable and switch to WritingExitTime mode
+                            match NaiveDateTime::parse_from_str(
+                                &app.date_time_assistant.iso_format(),
+                                "%Y-%m-%d %H:%M",
+                            ) {
                                 Ok(exit_time) => {
                                     // Save the period to the database
                                     match register_period(&app.db, *enter_time_str, exit_time) {
                                         Ok(_) => {
                                             // Clear the input buffer and return to the main menu
-                                            app.input_buffer.clear();
+                                            app.date_time_assistant.reset();
                                             app.temporal_enter_time = None;
                                             app.ui_mode = UiMode::Menu;
                                         }
@@ -118,11 +297,22 @@ pub fn run_app(
                     }
                     KeyCode::Char(c) => {
                         // Append typed characters to the input buffer
-                        app.input_buffer.push(c);
+                        let max_len = if app.date_time_assistant.step == 0 {
+                            4
+                        } else {
+                            2
+                        };
+                        if app.input_buffer.len() < max_len {
+                            app.input_buffer.push(c);
+                        }
                     }
                     KeyCode::Backspace => {
                         // Remove the last character from the input buffer if it exists
-                        app.input_buffer.pop();
+                        if app.input_buffer.is_empty() && app.date_time_assistant.step > 0 {
+                            app.date_time_assistant.step -= 1;
+                        } else {
+                            app.input_buffer.pop();
+                        }
                     }
                     _ => {}
                 },
@@ -130,14 +320,66 @@ pub fn run_app(
                     KeyCode::Esc => {
                         // Cancel the calculating mode and return to the main menu
                         app.ui_mode = UiMode::Menu;
+                        app.date_assistant.reset();
                         app.input_buffer.clear();
                     }
                     KeyCode::Enter => {
+                        match app.date_assistant.step {
+                            0 => {
+                                // Validate the year input
+                                match app.date_assistant.validate_year(&app.input_buffer) {
+                                    Ok(_) => {
+                                        app.date_assistant.year = app.input_buffer.clone();
+                                        app.input_buffer.clear();
+                                        app.date_assistant.step += 1;
+                                        continue;
+                                    }
+                                    Err(e) => {
+                                        app.error_message = Some(e.user_message());
+                                        continue;
+                                    }
+                                }
+                            }
+                            1 => {
+                                // Validate the month input
+                                match app.date_assistant.validate_month(&app.input_buffer) {
+                                    Ok(_) => {
+                                        app.date_assistant.month = app.input_buffer.clone();
+                                        app.input_buffer.clear();
+                                        app.date_assistant.step += 1;
+                                        continue;
+                                    }
+                                    Err(e) => {
+                                        app.error_message = Some(e.user_message());
+                                        continue;
+                                    }
+                                }
+                            }
+                            2 => {
+                                // Validate the day input
+                                match app.date_assistant.validate_day(&app.input_buffer) {
+                                    Ok(_) => {
+                                        app.date_assistant.day = app.input_buffer.clone();
+                                        app.input_buffer.clear();
+                                        app.date_assistant.step += 1;
+                                    }
+                                    Err(e) => {
+                                        app.error_message = Some(e.user_message());
+                                        continue;
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+
                         // Calculate the start time based on the input buffer
-                        match NaiveDate::parse_from_str(&app.input_buffer, "%Y-%m-%d") {
+                        match NaiveDate::parse_from_str(
+                            &app.date_assistant.iso_format(),
+                            "%Y-%m-%d",
+                        ) {
                             Ok(date) => {
                                 app.temporal_start_date = Some(date.and_hms_opt(0, 0, 0).unwrap());
-                                app.input_buffer.clear();
+                                app.date_assistant.reset();
                                 app.ui_mode = UiMode::CalculatingEnd;
                             }
                             Err(e) => {
@@ -148,11 +390,18 @@ pub fn run_app(
                     }
                     KeyCode::Char(c) => {
                         // Append typed characters to the input buffer
-                        app.input_buffer.push(c);
+                        let max_len = if app.date_assistant.step == 0 { 4 } else { 2 };
+                        if app.input_buffer.len() < max_len {
+                            app.input_buffer.push(c);
+                        }
                     }
                     KeyCode::Backspace => {
                         // Remove the last character from the input buffer if it exists
-                        app.input_buffer.pop();
+                        if app.input_buffer.is_empty() && app.date_assistant.step > 0 {
+                            app.date_assistant.step -= 1;
+                        } else {
+                            app.input_buffer.pop();
+                        }
                     }
                     _ => {}
                 },
@@ -160,12 +409,64 @@ pub fn run_app(
                     KeyCode::Esc => {
                         // Cancel the calculating mode and return to the main menu
                         app.ui_mode = UiMode::Menu;
+                        app.date_assistant.reset();
                         app.input_buffer.clear();
                     }
                     KeyCode::Enter => {
                         if let Some(start_date) = &app.temporal_start_date {
+                            match app.date_assistant.step {
+                                0 => {
+                                    // Validate the year input
+                                    match app.date_assistant.validate_year(&app.input_buffer) {
+                                        Ok(_) => {
+                                            app.date_assistant.year = app.input_buffer.clone();
+                                            app.input_buffer.clear();
+                                            app.date_assistant.step += 1;
+                                            continue;
+                                        }
+                                        Err(e) => {
+                                            app.error_message = Some(e.user_message());
+                                            continue;
+                                        }
+                                    }
+                                }
+                                1 => {
+                                    // Validate the month input
+                                    match app.date_assistant.validate_month(&app.input_buffer) {
+                                        Ok(_) => {
+                                            app.date_assistant.month = app.input_buffer.clone();
+                                            app.input_buffer.clear();
+                                            app.date_assistant.step += 1;
+                                            continue;
+                                        }
+                                        Err(e) => {
+                                            app.error_message = Some(e.user_message());
+                                            continue;
+                                        }
+                                    }
+                                }
+                                2 => {
+                                    // Validate the day input
+                                    match app.date_assistant.validate_day(&app.input_buffer) {
+                                        Ok(_) => {
+                                            app.date_assistant.day = app.input_buffer.clone();
+                                            app.input_buffer.clear();
+                                            app.date_assistant.step += 1;
+                                        }
+                                        Err(e) => {
+                                            app.error_message = Some(e.user_message());
+                                            continue;
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+
                             // Calculate the end time based on the input buffer and the previously entered start date
-                            match NaiveDate::parse_from_str(&app.input_buffer, "%Y-%m-%d") {
+                            match NaiveDate::parse_from_str(
+                                &app.date_assistant.iso_format(),
+                                "%Y-%m-%d",
+                            ) {
                                 Ok(date) => {
                                     let end_date = date.and_hms_opt(23, 59, 59).unwrap();
 
@@ -173,7 +474,7 @@ pub fn run_app(
                                     {
                                         Ok(hours) => {
                                             app.calculation_result = Some(hours);
-                                            app.input_buffer.clear();
+                                            app.date_assistant.reset();
                                             app.ui_mode = UiMode::CalculatingShowResult;
                                         }
                                         Err(e) => {
@@ -195,11 +496,18 @@ pub fn run_app(
                     }
                     KeyCode::Char(c) => {
                         // Append typed characters to the input buffer
-                        app.input_buffer.push(c);
+                        let max_len = if app.date_assistant.step == 0 { 4 } else { 2 };
+                        if app.input_buffer.len() < max_len {
+                            app.input_buffer.push(c);
+                        }
                     }
                     KeyCode::Backspace => {
                         // Remove the last character from the input buffer if it exists
-                        app.input_buffer.pop();
+                        if app.input_buffer.is_empty() && app.date_assistant.step > 0 {
+                            app.date_assistant.step -= 1;
+                        } else {
+                            app.input_buffer.pop();
+                        }
                     }
                     _ => {}
                 },
@@ -207,7 +515,6 @@ pub fn run_app(
                     KeyCode::Esc | KeyCode::Enter => {
                         // Return to the main menu after showing the calculation result
                         app.ui_mode = UiMode::Menu;
-                        app.input_buffer.clear();
                         app.calculation_result = None;
                         app.temporal_start_date = None;
                     }

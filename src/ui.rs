@@ -2,6 +2,7 @@ use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
+    text::Line,
     widgets::{Block, Borders, Paragraph},
 };
 
@@ -31,71 +32,104 @@ pub fn render(f: &mut Frame, app: &AppState) {
     // Center section
     match app.ui_mode {
         UiMode::Menu => {
-            let menu_text = "Welcome to the registration.\n\nPress 'e' to enter a new manual period.\nPress 'q' to exit the application.\nPress 'c' to calculate hours between two dates.";
+            let menu_text = "Welcome to the registration.\n\nPress 'e' to enter a new manual period.\nPress 'c' to calculate hours between two dates.\nPress 'q' to exit the application.";
             let content = Paragraph::new(menu_text)
                 .block(Block::default().borders(Borders::ALL).title(" Main Menu "));
             f.render_widget(content, chunks[1]);
         }
-        UiMode::WritingEnterTime => {
-            // Show what the user is typing from app.input_buffer
-            let input_text = format!(
-                "Enter the date (YYYY-MM-DD HH:MM):\n\n> {}",
-                app.input_buffer
+        UiMode::WritingEnterTime | UiMode::WritingExitTime => {
+            let labels = ["Year", "Month", "Day", "Hour", "Minute"];
+            let values = [
+                &app.date_time_assistant.year,
+                &app.date_time_assistant.month,
+                &app.date_time_assistant.day,
+                &app.date_time_assistant.hour,
+                &app.date_time_assistant.minute,
+            ];
+
+            let mut text_lines = Vec::new();
+
+            text_lines.push(Line::from("Enter the date:\n\n"));
+
+            for i in 0..5 {
+                if i < app.date_time_assistant.step as usize {
+                    text_lines.push(Line::from(format!("  {}: {}", labels[i], values[i])));
+                } else if i == app.date_time_assistant.step as usize {
+                    text_lines.push(
+                        Line::from(format!("> {}: {}", labels[i], &app.input_buffer))
+                            .style(Style::default().fg(Color::Yellow)),
+                    );
+                } else {
+                    text_lines.push(
+                        Line::from(format!("  {}: ", labels[i]))
+                            .style(Style::default().fg(Color::Gray)),
+                    );
+                }
+            }
+
+            let title = if app.ui_mode == UiMode::WritingEnterTime {
+                " Register Period - Enter Time "
+            } else {
+                " Register Period - Exit Time "
+            };
+            let border_color = if app.ui_mode == UiMode::WritingEnterTime {
+                Color::LightGreen
+            } else {
+                Color::LightRed
+            };
+            let content = Paragraph::new(text_lines).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(title)
+                    .border_style(Style::default().fg(border_color)),
             );
-            let content = Paragraph::new(input_text)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title(" Enter Time ")
-                        .border_style(Style::default().fg(Color::LightGreen)),
-                )
-                .style(Style::default().fg(Color::White));
             f.render_widget(content, chunks[1]);
         }
-        UiMode::WritingExitTime => {
-            // Show what the user is typing from app.input_buffer
-            let input_text = format!(
-                "Enter the exit date (YYYY-MM-DD HH:MM):\n\n> {}",
-                app.input_buffer
+        UiMode::CalculatingStart | UiMode::CalculatingEnd => {
+            let labels = ["Year", "Month", "Day"];
+            let values = [
+                &app.date_assistant.year,
+                &app.date_assistant.month,
+                &app.date_assistant.day,
+            ];
+
+            let mut text_lines = Vec::new();
+
+            text_lines.push(Line::from("Enter the date:\n\n"));
+
+            for i in 0..3 {
+                if i < app.date_assistant.step as usize {
+                    text_lines.push(Line::from(format!("  {}: {}", labels[i], values[i])));
+                } else if i == app.date_assistant.step as usize {
+                    text_lines.push(
+                        Line::from(format!("> {}: {}", labels[i], &app.input_buffer))
+                            .style(Style::default().fg(Color::Yellow)),
+                    );
+                } else {
+                    text_lines.push(
+                        Line::from(format!("  {}: ", labels[i]))
+                            .style(Style::default().fg(Color::Gray)),
+                    );
+                }
+            }
+
+            let title = if app.ui_mode == UiMode::CalculatingStart {
+                " Calculate Hours - Start Date "
+            } else {
+                " Calculate Hours - End Date "
+            };
+            let border_color = if app.ui_mode == UiMode::CalculatingStart {
+                Color::LightGreen
+            } else {
+                Color::LightRed
+            };
+
+            let content = Paragraph::new(text_lines).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(title)
+                    .border_style(Style::default().fg(border_color)),
             );
-            let content = Paragraph::new(input_text)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title(" Exit Time ")
-                        .border_style(Style::default().fg(Color::LightRed)),
-                )
-                .style(Style::default().fg(Color::White));
-            f.render_widget(content, chunks[1]);
-        }
-        UiMode::CalculatingStart => {
-            let input_text = format!(
-                "Enter the start date for calculation (YYYY-MM-DD):\n\n> {}",
-                app.input_buffer
-            );
-            let content = Paragraph::new(input_text)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title(" Calculate Hours - Start Date ")
-                        .border_style(Style::default().fg(Color::LightGreen)),
-                )
-                .style(Style::default().fg(Color::White));
-            f.render_widget(content, chunks[1]);
-        }
-        UiMode::CalculatingEnd => {
-            let input_text = format!(
-                "Enter the end date for calculation (YYYY-MM-DD):\n\n> {}",
-                app.input_buffer
-            );
-            let content = Paragraph::new(input_text)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title(" Calculate Hours - End Date ")
-                        .border_style(Style::default().fg(Color::LightRed)),
-                )
-                .style(Style::default().fg(Color::White));
             f.render_widget(content, chunks[1]);
         }
         UiMode::CalculatingShowResult => {
