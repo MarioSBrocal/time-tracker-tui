@@ -31,7 +31,7 @@ pub fn render(f: &mut Frame, app: &AppState) {
     // Center section
     match app.ui_mode {
         UiMode::Menu => {
-            let menu_text = "Welcome to the registration.\n\nPress 'e' to enter a new manual period.\nPress 'q' to exit the application.";
+            let menu_text = "Welcome to the registration.\n\nPress 'e' to enter a new manual period.\nPress 'q' to exit the application.\nPress 'c' to calculate hours between two dates.";
             let content = Paragraph::new(menu_text)
                 .block(Block::default().borders(Borders::ALL).title(" Main Menu "));
             f.render_widget(content, chunks[1]);
@@ -47,7 +47,7 @@ pub fn render(f: &mut Frame, app: &AppState) {
                     Block::default()
                         .borders(Borders::ALL)
                         .title(" Enter Time ")
-                        .border_style(Style::default().fg(Color::Green)),
+                        .border_style(Style::default().fg(Color::LightGreen)),
                 )
                 .style(Style::default().fg(Color::White));
             f.render_widget(content, chunks[1]);
@@ -68,13 +68,70 @@ pub fn render(f: &mut Frame, app: &AppState) {
                 .style(Style::default().fg(Color::White));
             f.render_widget(content, chunks[1]);
         }
+        UiMode::CalculatingStart => {
+            let input_text = format!(
+                "Enter the start date for calculation (YYYY-MM-DD):\n\n> {}",
+                app.input_buffer
+            );
+            let content = Paragraph::new(input_text)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(" Calculate Hours - Start Date ")
+                        .border_style(Style::default().fg(Color::LightGreen)),
+                )
+                .style(Style::default().fg(Color::White));
+            f.render_widget(content, chunks[1]);
+        }
+        UiMode::CalculatingEnd => {
+            let input_text = format!(
+                "Enter the end date for calculation (YYYY-MM-DD):\n\n> {}",
+                app.input_buffer
+            );
+            let content = Paragraph::new(input_text)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(" Calculate Hours - End Date ")
+                        .border_style(Style::default().fg(Color::LightRed)),
+                )
+                .style(Style::default().fg(Color::White));
+            f.render_widget(content, chunks[1]);
+        }
+        UiMode::CalculatingShowResult => {
+            let result_text = match app.calculation_result {
+                Some(hours) => {
+                    let total_minutes = (hours * 60.0).round() as u64;
+                    let total_hours = total_minutes / 60;
+                    let remaining_minutes = total_minutes % 60;
+
+                    format!(
+                        "Total hours calculated between the specified dates: {:.2} hours\nExact time: {:02}:{:02}",
+                        hours, total_hours, remaining_minutes
+                    )
+                }
+                None => "No calculation result available.".to_string(),
+            };
+            let content = Paragraph::new(result_text)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(" Calculation Result ")
+                        .border_style(Style::default().fg(Color::Magenta)),
+                )
+                .style(Style::default().fg(Color::White));
+            f.render_widget(content, chunks[1]);
+        }
     }
 
     // Footer section
     let msg_pie = match app.ui_mode {
-        UiMode::Menu => " 'q' Exit | 'e' Write period ",
+        UiMode::Menu => " 'q' Exit | 'e' Write period | 'c' Calculate hours ",
         UiMode::WritingEnterTime => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
         UiMode::WritingExitTime => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
+        UiMode::CalculatingStart => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
+        UiMode::CalculatingEnd => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
+        UiMode::CalculatingShowResult => " 'Esc' Return to Menu | 'Enter' Return to Menu ",
     };
     let pie = Paragraph::new(msg_pie)
         .block(Block::default().borders(Borders::ALL))

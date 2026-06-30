@@ -10,8 +10,12 @@ pub enum AppError {
     #[error("Input/Output error in terminal: {0}")]
     IO(#[from] std::io::Error),
 
+    // TODO: Divide in different error types to cover different formats.
     #[error("Date parsing error: {0}")]
     DateParse(#[from] chrono::ParseError),
+
+    #[error("Invalid state: {0}")]
+    InvalidState(String),
 
     #[error("Unexpected error: {0}")]
     Unexpected(String),
@@ -28,6 +32,7 @@ impl AppError {
             AppError::DateParse(_) => {
                 "Invalid date-time format. Please use YYYY-MM-DD HH:MM:SS.".to_string()
             }
+            AppError::InvalidState(msg) => format!("Invalid state: {}", msg),
             AppError::Unexpected(msg) => format!("Unexpected error: {}", msg),
         }
     }
@@ -40,6 +45,9 @@ pub enum UiMode {
     Menu,
     WritingEnterTime,
     WritingExitTime,
+    CalculatingStart,
+    CalculatingEnd,
+    CalculatingShowResult,
 }
 
 pub struct Config {
@@ -52,6 +60,8 @@ pub struct AppState {
     pub ui_mode: UiMode,
     pub input_buffer: String,
     pub temporal_enter_time: Option<NaiveDateTime>,
+    pub temporal_start_date: Option<NaiveDateTime>,
+    pub calculation_result: Option<f64>,
     pub should_quit: bool,
     pub error_message: Option<String>,
 }
@@ -65,6 +75,8 @@ impl AppState {
             ui_mode: UiMode::Menu,
             input_buffer: String::new(),
             temporal_enter_time: None,
+            temporal_start_date: None,
+            calculation_result: None,
             should_quit: false,
             error_message: None,
         }
