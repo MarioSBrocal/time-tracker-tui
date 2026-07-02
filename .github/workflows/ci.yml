@@ -1,4 +1,4 @@
-name: CI - Calidad y Pruebas
+name: CI - Quality and Tests
 
 on:
     push:
@@ -32,5 +32,5 @@ jobs:
             - name: Run strict linter (Clippy)
               run: cargo clippy --all-targets --all-features -- -D warnings
 
-            - name: 3. Run tests (Tests)
+            - name: Run tests (Tests)
               run: cargo test --all-targets --all-features
