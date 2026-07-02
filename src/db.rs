@@ -1,10 +1,27 @@
+use std::{fs::create_dir_all, path::PathBuf};
+
 use chrono::NaiveDateTime;
+use directories::ProjectDirs;
 use rusqlite::{Connection, params};
 
 use crate::app::{AppError, AppResult, Period};
 
-pub fn setup_db(db_path: &str) -> AppResult<Connection> {
-    let conn = Connection::open(db_path)?;
+pub fn get_db_path() -> PathBuf {
+    if let Some(proj_dirs) = ProjectDirs::from("", "", "TimeTrackerTUI") {
+        let data_dir = proj_dirs.data_dir();
+
+        if !data_dir.exists() {
+            create_dir_all(data_dir).expect("Failed to create data directory");
+        }
+
+        data_dir.join("time_tracker.sqlite")
+    } else {
+        PathBuf::from("time_tracker.sqlite") // Fallback to current directory if ProjectDirs fails
+    }
+}
+
+pub fn setup_db() -> AppResult<Connection> {
+    let conn = Connection::open(get_db_path())?;
 
     // Save the dates in the database as text in ISO 8601 format (YYYY-MM-DD HH:MM:SS).
     conn.execute(

@@ -19,7 +19,7 @@ mod ui;
 
 fn main() -> AppResult<()> {
     // Initialize the database connection
-    let conn = setup_db("time_tracker.db")?;
+    let conn = setup_db()?;
 
     // Create the global application state
     let mut app_state = AppState::new(conn);
