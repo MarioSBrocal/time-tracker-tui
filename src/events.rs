@@ -236,6 +236,7 @@ pub fn run_app(
                                             app.date_time_assistant.reset();
                                             app.temporal_enter_time = None;
                                             app.editing_period_id = None;
+                                            app.temporal_editing_period_exit_time = None;
                                             app.ui_mode = UiMode::Menu;
                                         }
                                         Err(e) => app.error_message = Some(e.user_message()),
