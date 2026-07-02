@@ -1,0 +1,36 @@
+name: CI - Calidad y Pruebas
+
+on:
+    push:
+        branches: [main, develop]
+    pull_request:
+        branches: [main]
+
+env:
+    CARGO_TERM_COLOR: always
+
+jobs:
+    check-and-test:
+        name: Check Rust (Ubuntu)
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Download repository
+              uses: actions/checkout@v4
+
+            - name: Install Rust Toolchain
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                  components: clippy, rustfmt
+
+            - name: Configure Cargo cache
+              uses: swatinem/rust-cache@v2
+
+            - name: Check code format (rustfmt)
+              run: cargo fmt --all -- --check
+
+            - name: Run strict linter (Clippy)
+              run: cargo clippy --all-targets --all-features -- -D warnings
+
+            - name: 3. Run tests (Tests)
+              run: cargo test --all-targets --all-features
