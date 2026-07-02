@@ -34,9 +34,6 @@ pub enum AppError {
 
     #[error("Invalid state: {0}")]
     InvalidState(String),
-
-    #[error("Unexpected error: {0}")]
-    Unexpected(String),
 }
 impl AppError {
     pub fn user_message(&self) -> String {
@@ -57,7 +54,6 @@ impl AppError {
                 "Invalid date-time format. Please use YYYY-MM-DD HH:MM.".to_string()
             }
             AppError::InvalidState(msg) => format!("Invalid state: {}", msg),
-            AppError::Unexpected(msg) => format!("Unexpected error: {}", msg),
         }
     }
 }
