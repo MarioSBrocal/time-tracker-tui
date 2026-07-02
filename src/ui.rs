@@ -1,9 +1,9 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::Line,
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table},
+    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table},
 };
 
 use crate::app::{AppState, UiMode};
@@ -226,6 +226,24 @@ pub fn render(f: &mut Frame, app: &mut AppState) {
             // Render the table in the center section of the UI
             f.render_stateful_widget(table, chunks[1], &mut app.table_state);
         }
+        UiMode::ConfirmingDelete => {
+            let popup_area = centered_area(50, 20, f.area());
+
+            let warning_text = "\nAre you sure you want to delete this period?\n\n[Y/Enter] Confirm  |  [N/Esc] Cancel";
+
+            let popup = Paragraph::new(warning_text)
+                .block(
+                    Block::default()
+                        .title(" DELETE PERIOD ")
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::Red)),
+                )
+                .style(Style::default().fg(Color::White))
+                .alignment(Alignment::Center);
+
+            f.render_widget(Clear, popup_area); // Clear the area first
+            f.render_widget(popup, popup_area); // Render the popup in the center of the terminal
+        }
     }
 
     // Footer section
@@ -237,8 +255,9 @@ pub fn render(f: &mut Frame, app: &mut AppState) {
         UiMode::CalculatingEnd => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
         UiMode::CalculatingShowResult => " 'Esc' Return to Menu | 'Enter' Return to Menu ",
         UiMode::VisualizingTable => {
-            " 'Esc' Return to Menu | 'Left/Right' Change month | 'Up/Down' Navigate rows "
+            " 'Esc' Return to Menu | 'Left/Right' Change month | 'Up/Down' Navigate rows | 'd' Delete selected period | 'e' Edit selected period "
         }
+        UiMode::ConfirmingDelete => " 'n' Cancel and return to Menu | 'y' Confirm deletion ",
     };
     let pie = Paragraph::new(msg_pie)
         .block(Block::default().borders(Borders::ALL))

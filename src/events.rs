@@ -2,10 +2,10 @@ use std::io::Stdout;
 
 use crate::{
     app::{AppError, AppResult, AppState, UiMode},
-    db::{self, fetch_month_periods, register_period},
+    db::{self, delete_period, fetch_month_periods, register_period, update_period},
     ui,
 };
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{Datelike, NaiveDate, NaiveDateTime, Timelike};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{Terminal, backend::CrosstermBackend};
 
@@ -67,7 +67,12 @@ pub fn run_app(
                 UiMode::WritingEnterTime => match key.code {
                     KeyCode::Esc => {
                         // Cancel the writing mode and return to the main menu
-                        app.ui_mode = UiMode::Menu;
+                        if app.editing_period_id.is_some() {
+                            app.ui_mode = UiMode::VisualizingTable;
+                            app.editing_period_id = None;
+                        } else {
+                            app.ui_mode = UiMode::Menu;
+                        }
                         app.date_time_assistant.reset();
                         app.input_buffer.clear();
                     }
@@ -78,7 +83,12 @@ pub fn run_app(
                                 match app.date_time_assistant.validate_year(&app.input_buffer) {
                                     Ok(_) => {
                                         app.date_time_assistant.year = app.input_buffer.clone();
-                                        app.input_buffer.clear();
+                                        if app.editing_period_id.is_some() {
+                                            app.input_buffer =
+                                                app.date_time_assistant.month.clone();
+                                        } else {
+                                            app.input_buffer.clear();
+                                        }
                                         app.date_time_assistant.step += 1;
                                         continue;
                                     }
@@ -93,7 +103,11 @@ pub fn run_app(
                                 match app.date_time_assistant.validate_month(&app.input_buffer) {
                                     Ok(_) => {
                                         app.date_time_assistant.month = app.input_buffer.clone();
-                                        app.input_buffer.clear();
+                                        if app.editing_period_id.is_some() {
+                                            app.input_buffer = app.date_time_assistant.day.clone();
+                                        } else {
+                                            app.input_buffer.clear();
+                                        }
                                         app.date_time_assistant.step += 1;
                                         continue;
                                     }
@@ -108,7 +122,11 @@ pub fn run_app(
                                 match app.date_time_assistant.validate_day(&app.input_buffer) {
                                     Ok(_) => {
                                         app.date_time_assistant.day = app.input_buffer.clone();
-                                        app.input_buffer.clear();
+                                        if app.editing_period_id.is_some() {
+                                            app.input_buffer = app.date_time_assistant.hour.clone();
+                                        } else {
+                                            app.input_buffer.clear();
+                                        }
                                         app.date_time_assistant.step += 1;
                                         continue;
                                     }
@@ -123,7 +141,12 @@ pub fn run_app(
                                 match app.date_time_assistant.validate_hour(&app.input_buffer) {
                                     Ok(_) => {
                                         app.date_time_assistant.hour = app.input_buffer.clone();
-                                        app.input_buffer.clear();
+                                        if app.editing_period_id.is_some() {
+                                            app.input_buffer =
+                                                app.date_time_assistant.minute.clone();
+                                        } else {
+                                            app.input_buffer.clear();
+                                        }
                                         app.date_time_assistant.step += 1;
                                         continue;
                                     }
@@ -138,7 +161,15 @@ pub fn run_app(
                                 match app.date_time_assistant.validate_minute(&app.input_buffer) {
                                     Ok(_) => {
                                         app.date_time_assistant.minute = app.input_buffer.clone();
-                                        app.input_buffer.clear();
+                                        if app.editing_period_id.is_some()
+                                            && let Some(temporal_exit_time) =
+                                                app.temporal_editing_period_exit_time
+                                        {
+                                            app.input_buffer =
+                                                temporal_exit_time.year().to_string();
+                                        } else {
+                                            app.input_buffer.clear();
+                                        }
                                         app.date_time_assistant.step += 1;
                                     }
                                     Err(e) => {
@@ -158,6 +189,25 @@ pub fn run_app(
                             Ok(enter_time) => {
                                 app.temporal_enter_time = Some(enter_time);
                                 app.date_time_assistant.reset();
+
+                                if let Some(temporal_exit_time) =
+                                    app.temporal_editing_period_exit_time
+                                {
+                                    app.date_time_assistant.year =
+                                        temporal_exit_time.year().to_string();
+                                    app.date_time_assistant.month =
+                                        temporal_exit_time.month().to_string();
+                                    app.date_time_assistant.day =
+                                        temporal_exit_time.day().to_string();
+                                    app.date_time_assistant.hour =
+                                        temporal_exit_time.hour().to_string();
+                                    app.date_time_assistant.minute =
+                                        temporal_exit_time.minute().to_string();
+                                    app.input_buffer = app.date_time_assistant.year.clone();
+                                } else {
+                                    app.input_buffer.clear();
+                                }
+
                                 app.ui_mode = UiMode::WritingExitTime;
                             }
                             Err(e) => {
@@ -180,6 +230,14 @@ pub fn run_app(
                     KeyCode::Backspace => {
                         // Remove the last character from the input buffer if it exists
                         if app.input_buffer.is_empty() && app.date_time_assistant.step > 0 {
+                            match app.date_time_assistant.step {
+                                1 => app.input_buffer = app.date_time_assistant.year.clone(),
+                                2 => app.input_buffer = app.date_time_assistant.month.clone(),
+                                3 => app.input_buffer = app.date_time_assistant.day.clone(),
+                                4 => app.input_buffer = app.date_time_assistant.hour.clone(),
+                                5 => app.input_buffer = app.date_time_assistant.minute.clone(),
+                                _ => {}
+                            }
                             app.date_time_assistant.step -= 1;
                         } else {
                             app.input_buffer.pop();
@@ -191,18 +249,24 @@ pub fn run_app(
                     KeyCode::Esc => {
                         // Cancel the writing mode and return to the main menu
                         app.ui_mode = UiMode::Menu;
+                        app.editing_period_id = None;
                         app.date_time_assistant.reset();
                         app.input_buffer.clear();
                     }
                     KeyCode::Enter => {
-                        if let Some(enter_time_str) = &app.temporal_enter_time {
+                        if let Some(enter_time) = &app.temporal_enter_time {
                             match app.date_time_assistant.step {
                                 0 => {
                                     // Validate the year input
                                     match app.date_time_assistant.validate_year(&app.input_buffer) {
                                         Ok(_) => {
                                             app.date_time_assistant.year = app.input_buffer.clone();
-                                            app.input_buffer.clear();
+                                            if app.editing_period_id.is_some() {
+                                                app.input_buffer =
+                                                    app.date_time_assistant.month.clone();
+                                            } else {
+                                                app.input_buffer.clear();
+                                            }
                                             app.date_time_assistant.step += 1;
                                             continue;
                                         }
@@ -219,7 +283,12 @@ pub fn run_app(
                                         Ok(_) => {
                                             app.date_time_assistant.month =
                                                 app.input_buffer.clone();
-                                            app.input_buffer.clear();
+                                            if app.editing_period_id.is_some() {
+                                                app.input_buffer =
+                                                    app.date_time_assistant.day.clone();
+                                            } else {
+                                                app.input_buffer.clear();
+                                            }
                                             app.date_time_assistant.step += 1;
                                             continue;
                                         }
@@ -234,7 +303,12 @@ pub fn run_app(
                                     match app.date_time_assistant.validate_day(&app.input_buffer) {
                                         Ok(_) => {
                                             app.date_time_assistant.day = app.input_buffer.clone();
-                                            app.input_buffer.clear();
+                                            if app.editing_period_id.is_some() {
+                                                app.input_buffer =
+                                                    app.date_time_assistant.hour.clone();
+                                            } else {
+                                                app.input_buffer.clear();
+                                            }
                                             app.date_time_assistant.step += 1;
                                             continue;
                                         }
@@ -249,7 +323,12 @@ pub fn run_app(
                                     match app.date_time_assistant.validate_hour(&app.input_buffer) {
                                         Ok(_) => {
                                             app.date_time_assistant.hour = app.input_buffer.clone();
-                                            app.input_buffer.clear();
+                                            if app.editing_period_id.is_some() {
+                                                app.input_buffer =
+                                                    app.date_time_assistant.minute.clone();
+                                            } else {
+                                                app.input_buffer.clear();
+                                            }
                                             app.date_time_assistant.step += 1;
                                             continue;
                                         }
@@ -284,16 +363,37 @@ pub fn run_app(
                                 "%Y-%m-%d %H:%M",
                             ) {
                                 Ok(exit_time) => {
-                                    // Save the period to the database
-                                    match register_period(&app.db, *enter_time_str, exit_time) {
-                                        Ok(_) => {
-                                            // Clear the input buffer and return to the main menu
-                                            app.date_time_assistant.reset();
-                                            app.temporal_enter_time = None;
-                                            app.ui_mode = UiMode::Menu;
+                                    if let Some(editing_period_id) = app.editing_period_id {
+                                        // Update the existing period in the database
+                                        match update_period(
+                                            &app.db,
+                                            editing_period_id,
+                                            *enter_time,
+                                            exit_time,
+                                        ) {
+                                            Ok(_) => {
+                                                // Clear the date time assistant and return to the main menu
+                                                app.date_time_assistant.reset();
+                                                app.temporal_enter_time = None;
+                                                app.editing_period_id = None;
+                                                app.ui_mode = UiMode::Menu;
+                                            }
+                                            Err(e) => {
+                                                app.error_message = Some(e.user_message());
+                                            }
                                         }
-                                        Err(e) => {
-                                            app.error_message = Some(e.user_message());
+                                    } else {
+                                        // Save the period to the database
+                                        match register_period(&app.db, *enter_time, exit_time) {
+                                            Ok(_) => {
+                                                // Clear the date time assistant and return to the main menu
+                                                app.date_time_assistant.reset();
+                                                app.temporal_enter_time = None;
+                                                app.ui_mode = UiMode::Menu;
+                                            }
+                                            Err(e) => {
+                                                app.error_message = Some(e.user_message());
+                                            }
                                         }
                                     }
                                 }
@@ -318,6 +418,14 @@ pub fn run_app(
                     KeyCode::Backspace => {
                         // Remove the last character from the input buffer if it exists
                         if app.input_buffer.is_empty() && app.date_time_assistant.step > 0 {
+                            match app.date_time_assistant.step {
+                                1 => app.input_buffer = app.date_time_assistant.year.clone(),
+                                2 => app.input_buffer = app.date_time_assistant.month.clone(),
+                                3 => app.input_buffer = app.date_time_assistant.day.clone(),
+                                4 => app.input_buffer = app.date_time_assistant.hour.clone(),
+                                5 => app.input_buffer = app.date_time_assistant.minute.clone(),
+                                _ => {}
+                            }
                             app.date_time_assistant.step -= 1;
                         } else {
                             app.input_buffer.pop();
@@ -407,6 +515,12 @@ pub fn run_app(
                     KeyCode::Backspace => {
                         // Remove the last character from the input buffer if it exists
                         if app.input_buffer.is_empty() && app.date_assistant.step > 0 {
+                            match app.date_assistant.step {
+                                1 => app.input_buffer = app.date_assistant.year.clone(),
+                                2 => app.input_buffer = app.date_assistant.month.clone(),
+                                3 => app.input_buffer = app.date_assistant.day.clone(),
+                                _ => {}
+                            }
                             app.date_assistant.step -= 1;
                         } else {
                             app.input_buffer.pop();
@@ -513,6 +627,12 @@ pub fn run_app(
                     KeyCode::Backspace => {
                         // Remove the last character from the input buffer if it exists
                         if app.input_buffer.is_empty() && app.date_assistant.step > 0 {
+                            match app.date_assistant.step {
+                                1 => app.input_buffer = app.date_assistant.year.clone(),
+                                2 => app.input_buffer = app.date_assistant.month.clone(),
+                                3 => app.input_buffer = app.date_assistant.day.clone(),
+                                _ => {}
+                            }
                             app.date_assistant.step -= 1;
                         } else {
                             app.input_buffer.pop();
@@ -547,10 +667,10 @@ pub fn run_app(
                     KeyCode::Right => {
                         app.table_next();
                         // Reload data from SQLite for the next month
-                        if let Ok(tramos) =
+                        if let Ok(periods) =
                             fetch_month_periods(&app.db, app.current_year, app.current_month)
                         {
-                            app.current_periods = tramos;
+                            app.current_periods = periods;
                         }
                     }
                     // Rows navigation (Up / Down)
@@ -579,6 +699,57 @@ pub fn run_app(
                             None => 0,
                         };
                         app.table_state.select(Some(i));
+                    }
+                    KeyCode::Char('d') => {
+                        if app.table_state.selected().is_some() {
+                            app.ui_mode = UiMode::ConfirmingDelete;
+                        }
+                    }
+                    KeyCode::Char('e') => {
+                        if let Some(selected_index) = app.table_state.selected()
+                            && let Some(period) = app.current_periods.get(selected_index)
+                        {
+                            app.editing_period_id = Some(period.id);
+
+                            app.date_time_assistant.year = period.enter_time.year().to_string();
+                            app.date_time_assistant.month = period.enter_time.month().to_string();
+                            app.date_time_assistant.day = period.enter_time.day().to_string();
+                            app.date_time_assistant.hour = period.enter_time.hour().to_string();
+                            app.date_time_assistant.minute = period.enter_time.minute().to_string();
+
+                            app.input_buffer = app.date_time_assistant.year.clone();
+                            app.temporal_editing_period_exit_time = Some(period.exit_time);
+
+                            app.ui_mode = UiMode::WritingEnterTime;
+                        }
+                    }
+                    _ => {}
+                },
+                UiMode::ConfirmingDelete => match key.code {
+                    KeyCode::Char('n') | KeyCode::Esc => {
+                        // Cancel the delete confirmation and return to the table visualization mode
+                        app.ui_mode = UiMode::VisualizingTable;
+                    }
+                    KeyCode::Char('y') | KeyCode::Enter => {
+                        if let Some(selected_index) = app.table_state.selected()
+                            && let Some(period) = app.current_periods.get(selected_index)
+                        {
+                            if let Err(e) = delete_period(&app.db, period.id) {
+                                app.error_message = Some(e.user_message());
+                            } else {
+                                // Refresh the periods list after deletion
+                                if let Ok(periods) = fetch_month_periods(
+                                    &app.db,
+                                    app.current_year,
+                                    app.current_month,
+                                ) {
+                                    app.current_periods = periods;
+                                    app.table_state.select(None); // Deselect after deletion
+                                }
+                            }
+                        }
+                        // Return to the table visualization mode after deletion
+                        app.ui_mode = UiMode::VisualizingTable;
                     }
                     _ => {}
                 },

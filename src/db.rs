@@ -32,6 +32,25 @@ pub fn register_period(
     Ok(())
 }
 
+pub fn delete_period(conn: &Connection, id: i32) -> AppResult<()> {
+    conn.execute("DELETE FROM periods WHERE id = ?1", params![id])?;
+    Ok(())
+}
+
+pub fn update_period(
+    conn: &Connection,
+    id: i32,
+    enter_time: NaiveDateTime,
+    exit_time: NaiveDateTime,
+) -> AppResult<()> {
+    conn.execute(
+        "UPDATE periods SET enter_time = ?1, exit_time = ?2 WHERE id = ?3",
+        params![enter_time.to_string(), exit_time.to_string(), id],
+    )?;
+
+    Ok(())
+}
+
 pub fn calculate_hours_range(
     conn: &Connection,
     from: NaiveDateTime,

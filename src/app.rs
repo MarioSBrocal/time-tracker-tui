@@ -73,6 +73,7 @@ pub enum UiMode {
     CalculatingEnd,
     CalculatingShowResult,
     VisualizingTable,
+    ConfirmingDelete,
 }
 
 #[derive(Default, Clone)]
@@ -282,6 +283,9 @@ pub struct AppState {
     pub current_year: i32,
     pub current_month: u32,
 
+    pub editing_period_id: Option<i32>,
+    pub temporal_editing_period_exit_time: Option<NaiveDateTime>,
+
     pub should_quit: bool,
     pub error_message: Option<String>,
 }
@@ -300,6 +304,8 @@ impl AppState {
             table_state: TableState::default(),
             current_year: Local::now().year(),
             current_month: Local::now().month(),
+            editing_period_id: None,
+            temporal_editing_period_exit_time: None,
             should_quit: false,
             error_message: None,
         }
