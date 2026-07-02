@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -52,18 +54,22 @@ pub fn render(f: &mut Frame, app: &mut AppState) {
             text_lines.push(Line::from("Enter the date:\n\n"));
 
             for i in 0..5 {
-                if i < app.date_time_assistant.step as usize {
-                    text_lines.push(Line::from(format!("  {}: {}", labels[i], values[i])));
-                } else if i == app.date_time_assistant.step as usize {
-                    text_lines.push(
-                        Line::from(format!("> {}: {}", labels[i], &app.input_buffer))
-                            .style(Style::default().fg(Color::Yellow)),
-                    );
-                } else {
-                    text_lines.push(
-                        Line::from(format!("  {}: ", labels[i]))
-                            .style(Style::default().fg(Color::Gray)),
-                    );
+                match i.cmp(&(app.date_time_assistant.step as usize)) {
+                    Ordering::Less => {
+                        text_lines.push(Line::from(format!("  {}: {}", labels[i], values[i])));
+                    }
+                    Ordering::Equal => {
+                        text_lines.push(
+                            Line::from(format!("> {}: {}", labels[i], &app.input_buffer))
+                                .style(Style::default().fg(Color::Yellow)),
+                        );
+                    }
+                    Ordering::Greater => {
+                        text_lines.push(
+                            Line::from(format!("  {}: ", labels[i]))
+                                .style(Style::default().fg(Color::Gray)),
+                        );
+                    }
                 }
             }
 
@@ -98,18 +104,22 @@ pub fn render(f: &mut Frame, app: &mut AppState) {
             text_lines.push(Line::from("Enter the date:\n\n"));
 
             for i in 0..3 {
-                if i < app.date_assistant.step as usize {
-                    text_lines.push(Line::from(format!("  {}: {}", labels[i], values[i])));
-                } else if i == app.date_assistant.step as usize {
-                    text_lines.push(
-                        Line::from(format!("> {}: {}", labels[i], &app.input_buffer))
-                            .style(Style::default().fg(Color::Yellow)),
-                    );
-                } else {
-                    text_lines.push(
-                        Line::from(format!("  {}: ", labels[i]))
-                            .style(Style::default().fg(Color::Gray)),
-                    );
+                match i.cmp(&(app.date_assistant.step as usize)) {
+                    Ordering::Less => {
+                        text_lines.push(Line::from(format!("  {}: {}", labels[i], values[i])));
+                    }
+                    Ordering::Equal => {
+                        text_lines.push(
+                            Line::from(format!("> {}: {}", labels[i], &app.input_buffer))
+                                .style(Style::default().fg(Color::Yellow)),
+                        );
+                    }
+                    Ordering::Greater => {
+                        text_lines.push(
+                            Line::from(format!("  {}: ", labels[i]))
+                                .style(Style::default().fg(Color::Gray)),
+                        );
+                    }
                 }
             }
 
@@ -249,10 +259,10 @@ pub fn render(f: &mut Frame, app: &mut AppState) {
     // Footer section
     let msg_pie = match app.ui_mode {
         UiMode::Menu => " 'q' Exit | 'e' Write period | 'c' Calculate hours ",
-        UiMode::WritingEnterTime => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
-        UiMode::WritingExitTime => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
-        UiMode::CalculatingStart => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
-        UiMode::CalculatingEnd => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
+        UiMode::WritingEnterTime
+        | UiMode::WritingExitTime
+        | UiMode::CalculatingStart
+        | UiMode::CalculatingEnd => " 'Esc' Cancel and return to Menu | 'Enter' Save ",
         UiMode::CalculatingShowResult => " 'Esc' Return to Menu | 'Enter' Return to Menu ",
         UiMode::VisualizingTable => {
             " 'Esc' Return to Menu | 'Left/Right' Change month | 'Up/Down' Navigate rows | 'd' Delete selected period | 'e' Edit selected period "

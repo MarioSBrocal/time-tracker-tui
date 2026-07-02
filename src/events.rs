@@ -80,7 +80,7 @@ pub fn run_app(
                     KeyCode::Enter => {
                         match app.date_time_assistant.step {
                             0 => match app.date_time_assistant.validate_year(&app.input_buffer) {
-                                Ok(_) => {
+                                Ok(()) => {
                                     // Validate the year input
                                     app.date_time_assistant.year = app.input_buffer.clone();
                                     app.input_buffer = if app.editing_period_id.is_some() {
@@ -97,7 +97,7 @@ pub fn run_app(
                                 }
                             },
                             1 => match app.date_time_assistant.validate_month(&app.input_buffer) {
-                                Ok(_) => {
+                                Ok(()) => {
                                     // Validate the month input
                                     app.date_time_assistant.month = app.input_buffer.clone();
                                     app.input_buffer = if app.editing_period_id.is_some() {
@@ -114,7 +114,7 @@ pub fn run_app(
                                 }
                             },
                             2 => match app.date_time_assistant.validate_day(&app.input_buffer) {
-                                Ok(_) => {
+                                Ok(()) => {
                                     // Validate the day input
                                     app.date_time_assistant.day = app.input_buffer.clone();
                                     app.input_buffer = if app.editing_period_id.is_some() {
@@ -131,7 +131,7 @@ pub fn run_app(
                                 }
                             },
                             3 => match app.date_time_assistant.validate_hour(&app.input_buffer) {
-                                Ok(_) => {
+                                Ok(()) => {
                                     // Validate the hour input
                                     app.date_time_assistant.hour = app.input_buffer.clone();
                                     app.input_buffer = if app.editing_period_id.is_some() {
@@ -148,7 +148,7 @@ pub fn run_app(
                                 }
                             },
                             4 => match app.date_time_assistant.validate_minute(&app.input_buffer) {
-                                Ok(_) => {
+                                Ok(()) => {
                                     // Validate the minute input
                                     app.date_time_assistant.minute = app.input_buffer.clone();
 
@@ -207,47 +207,43 @@ pub fn run_app(
                                 }
                                 Err(e) => {
                                     app.error_message =
-                                        Some(AppError::DateTimeParse(e.to_string()).user_message())
+                                        Some(AppError::DateTimeParse(e.to_string()).user_message());
                                 }
                             }
-                        } else {
-                            if let Some(enter_time) = &app.temporal_enter_time {
-                                match NaiveDateTime::parse_from_str(
-                                    &app.date_time_assistant.iso_format(),
-                                    "%Y-%m-%d %H:%M",
-                                ) {
-                                    Ok(exit_time) => {
-                                        let res = if let Some(editing_period_id) =
-                                            app.editing_period_id
-                                        {
-                                            // Update the existing period in the database
-                                            update_period(
-                                                &app.db,
-                                                editing_period_id,
-                                                *enter_time,
-                                                exit_time,
-                                            )
-                                        } else {
-                                            // Save the period to the database
-                                            register_period(&app.db, *enter_time, exit_time)
-                                        };
-
-                                        match res {
-                                            Ok(_) => {
-                                                // Clear the date time assistant and return to the main menu
-                                                app.date_time_assistant.reset();
-                                                app.temporal_enter_time = None;
-                                                app.editing_period_id = None;
-                                                app.ui_mode = UiMode::Menu;
-                                            }
-                                            Err(e) => app.error_message = Some(e.user_message()),
-                                        }
-                                    }
-                                    Err(e) => {
-                                        app.error_message = Some(
-                                            AppError::DateTimeParse(e.to_string()).user_message(),
+                        } else if let Some(enter_time) = &app.temporal_enter_time {
+                            match NaiveDateTime::parse_from_str(
+                                &app.date_time_assistant.iso_format(),
+                                "%Y-%m-%d %H:%M",
+                            ) {
+                                Ok(exit_time) => {
+                                    let res = if let Some(editing_period_id) = app.editing_period_id
+                                    {
+                                        // Update the existing period in the database
+                                        update_period(
+                                            &app.db,
+                                            editing_period_id,
+                                            *enter_time,
+                                            exit_time,
                                         )
+                                    } else {
+                                        // Save the period to the database
+                                        register_period(&app.db, *enter_time, exit_time)
+                                    };
+
+                                    match res {
+                                        Ok(()) => {
+                                            // Clear the date time assistant and return to the main menu
+                                            app.date_time_assistant.reset();
+                                            app.temporal_enter_time = None;
+                                            app.editing_period_id = None;
+                                            app.ui_mode = UiMode::Menu;
+                                        }
+                                        Err(e) => app.error_message = Some(e.user_message()),
                                     }
+                                }
+                                Err(e) => {
+                                    app.error_message =
+                                        Some(AppError::DateTimeParse(e.to_string()).user_message());
                                 }
                             }
                         }
@@ -293,7 +289,7 @@ pub fn run_app(
                             0 => {
                                 // Validate the year input
                                 match app.date_assistant.validate_year(&app.input_buffer) {
-                                    Ok(_) => {
+                                    Ok(()) => {
                                         app.date_assistant.year = app.input_buffer.clone();
                                         app.input_buffer.clear();
                                         app.date_assistant.step += 1;
@@ -308,7 +304,7 @@ pub fn run_app(
                             1 => {
                                 // Validate the month input
                                 match app.date_assistant.validate_month(&app.input_buffer) {
-                                    Ok(_) => {
+                                    Ok(()) => {
                                         app.date_assistant.month = app.input_buffer.clone();
                                         app.input_buffer.clear();
                                         app.date_assistant.step += 1;
@@ -323,7 +319,7 @@ pub fn run_app(
                             2 => {
                                 // Validate the day input
                                 match app.date_assistant.validate_day(&app.input_buffer) {
-                                    Ok(_) => {
+                                    Ok(()) => {
                                         app.date_assistant.day = app.input_buffer.clone();
                                         app.input_buffer.clear();
                                         app.date_assistant.step += 1;
@@ -337,6 +333,7 @@ pub fn run_app(
                             _ => {}
                         }
 
+                        #[allow(clippy::unwrap_used)]
                         if app.ui_mode == UiMode::CalculatingStart {
                             // Calculate the start time based on the input buffer
                             match NaiveDate::parse_from_str(
@@ -354,42 +351,37 @@ pub fn run_app(
                                         Some(AppError::DateParse(e.to_string()).user_message());
                                 }
                             }
-                        } else {
-                            if let Some(start_date) = &app.temporal_start_date {
-                                // Calculate the end time based on the input buffer and the previously entered start date
-                                match NaiveDate::parse_from_str(
-                                    &app.date_assistant.iso_format(),
-                                    "%Y-%m-%d",
-                                ) {
-                                    Ok(date) => {
-                                        let end_date = date.and_hms_opt(23, 59, 59).unwrap();
+                        } else if let Some(start_date) = &app.temporal_start_date {
+                            // Calculate the end time based on the input buffer and the previously entered start date
+                            match NaiveDate::parse_from_str(
+                                &app.date_assistant.iso_format(),
+                                "%Y-%m-%d",
+                            ) {
+                                Ok(date) => {
+                                    let end_date = date.and_hms_opt(23, 59, 59).unwrap();
 
-                                        match db::calculate_hours_range(
-                                            &app.db,
-                                            *start_date,
-                                            end_date,
-                                        ) {
-                                            Ok(hours) => {
-                                                app.calculation_result = Some(hours);
-                                                app.date_assistant.reset();
-                                                app.ui_mode = UiMode::CalculatingShowResult;
-                                            }
-                                            Err(e) => {
-                                                app.error_message = Some(e.user_message());
-                                            }
+                                    match db::calculate_hours_range(&app.db, *start_date, end_date)
+                                    {
+                                        Ok(hours) => {
+                                            app.calculation_result = Some(hours);
+                                            app.date_assistant.reset();
+                                            app.ui_mode = UiMode::CalculatingShowResult;
+                                        }
+                                        Err(e) => {
+                                            app.error_message = Some(e.user_message());
                                         }
                                     }
-                                    Err(e) => {
-                                        app.error_message =
-                                            Some(AppError::DateParse(e.to_string()).user_message());
-                                    }
                                 }
-                            } else {
-                                app.error_message = Some(
-                                    AppError::InvalidState("Start date not set".to_string())
-                                        .user_message(),
-                                );
+                                Err(e) => {
+                                    app.error_message =
+                                        Some(AppError::DateParse(e.to_string()).user_message());
+                                }
                             }
+                        } else {
+                            app.error_message = Some(
+                                AppError::InvalidState("Start date not set".to_string())
+                                    .user_message(),
+                            );
                         }
                     }
                     KeyCode::Char(c) => {
@@ -512,15 +504,11 @@ pub fn run_app(
                             // Refresh the periods list after deletion
                             if let Err(e) = delete_period(&app.db, period.id) {
                                 app.error_message = Some(e.user_message());
-                            } else {
-                                if let Ok(periods) = fetch_month_periods(
-                                    &app.db,
-                                    app.current_year,
-                                    app.current_month,
-                                ) {
-                                    app.current_periods = periods;
-                                    app.table_state.select(None); // Deselect after deletion
-                                }
+                            } else if let Ok(periods) =
+                                fetch_month_periods(&app.db, app.current_year, app.current_month)
+                            {
+                                app.current_periods = periods;
+                                app.table_state.select(None); // Deselect after deletion
                             }
                         }
                         // Return to the table visualization mode after deletion

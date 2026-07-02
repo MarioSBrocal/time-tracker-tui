@@ -10,8 +10,8 @@ pub fn get_db_path() -> PathBuf {
     if let Some(proj_dirs) = ProjectDirs::from("", "", "TimeTrackerTUI") {
         let data_dir = proj_dirs.data_dir();
 
-        if !data_dir.exists() {
-            create_dir_all(data_dir).expect("Failed to create data directory");
+        if !data_dir.exists() && create_dir_all(data_dir).is_err() {
+            return PathBuf::from("time_tracker.sqlite"); // Fallback to current directory if directory creation fails
         }
 
         data_dir.join("time_tracker.sqlite")

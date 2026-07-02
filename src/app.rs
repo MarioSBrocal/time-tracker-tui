@@ -102,6 +102,7 @@ impl DateTimeAssistant {
         )
     }
 
+    #[allow(clippy::unused_self)]
     pub fn validate_year(&self, input: &str) -> Result<(), AppError> {
         let year: i32 = input
             .parse()
@@ -118,6 +119,7 @@ impl DateTimeAssistant {
         }
     }
 
+    #[allow(clippy::unused_self)]
     pub fn validate_month(&self, input: &str) -> Result<(), AppError> {
         let month: u32 = input
             .parse()
@@ -156,6 +158,7 @@ impl DateTimeAssistant {
         }
     }
 
+    #[allow(clippy::unused_self)]
     pub fn validate_hour(&self, input: &str) -> Result<(), AppError> {
         let hour: u32 = input
             .parse()
@@ -170,6 +173,7 @@ impl DateTimeAssistant {
         }
     }
 
+    #[allow(clippy::unused_self)]
     pub fn validate_minute(&self, input: &str) -> Result<(), AppError> {
         let minute: u32 = input
             .parse()
@@ -204,6 +208,7 @@ impl DateAssistant {
         format!("{}-{}-{}", self.year, self.month, self.day)
     }
 
+    #[allow(clippy::unused_self)]
     pub fn validate_year(&self, input: &str) -> Result<(), AppError> {
         let year: i32 = input
             .parse()
@@ -220,6 +225,7 @@ impl DateAssistant {
         }
     }
 
+    #[allow(clippy::unused_self)]
     pub fn validate_month(&self, input: &str) -> Result<(), AppError> {
         let month: u32 = input
             .parse()
